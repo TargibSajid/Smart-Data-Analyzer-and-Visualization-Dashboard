@@ -1,86 +1,121 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
 
-# Page config
-st.set_page_config(layout="wide")
+from bin.Analyse.Traffic import Traffic
+from bin.Analyse.Weather import Weather
+from bin.Analyse.Sales import Sales
 
-# ------------------ STYLE ------------------
-st.markdown("""
-<style>
-body {
-    background-color: white;
-}
-.block-container {
-    padding-top: 1rem;
-}
-.card {
-    background-color: white;
-    padding: 15px;
-    border-radius: 10px;
-    box-shadow: 0px 2px 5px rgba(0,0,0,0.1);
-}
-</style>
-""", unsafe_allow_html=True)
+# ------------------ PAGE CONFIG ------------------
+st.set_page_config(page_title="Data Dashboard", layout="wide")
 
 # ------------------ TITLE ------------------
-st.title("Smart Data Analyzer Dashboard")
+st.title("📊 Smart Data Dashboard")
 
+# ------------------ FILE UPLOAD ------------------
+file = st.file_uploader(label="Upload your dataset (CSV or Excel)", type=["csv", "xlsx", "xls"])
+
+df = None
+
+print("File uploaded:", file)
+
+set = int(0)  # Default to Traffic if no file is uploaded
+if file is not None:
+    try:
+        if file.name.endswith(".csv"):
+            df = pd.read_csv(file)
+        else:
+            df = pd.read_excel(file)
+
+        st.success("✅ File uploaded successfully!")
+        if "traffic" in file.name.lower():
+            st.info("Loaded Traffic dataset.")
+            set = int(0)
+        elif "weather" in file.name.lower():
+            st.info("Loaded Weather dataset.")
+            set = int(1)
+        elif "sales" in file.name.lower():
+            st.info("Loaded Sales dataset.")
+            set = int(2)
+        else:
+            set = int(3)
+    except Exception as e:
+        st.error(f"Error loading file: {e}")
+
+
+base = st.selectbox(
+    "Select a base for your analysis",
+    options=["Traffic", "Weather", "Sales","others"],
+    index = set
+)
 # ------------------ LAYOUT ------------------
-col1, col2 = st.columns([1,2])
+left, right = st.columns([1, 2])
 
 # ------------------ LEFT PANEL ------------------
-with col1:
-    st.markdown("### Upload Data")
-    file = st.file_uploader("Upload CSV or Excel")
+with left:
+    st.subheader("📂 Data Panel")
 
-    if file:
-        df = pd.read_csv(file)
+    if df is not None:
+        st.write("**Rows:**", df.shape[0])
+        st.write("**Columns:**", df.shape[1])
 
-        st.markdown("### Stats")
-        st.write(f"Mean Value: {round(df.select_dtypes(include=np.number).mean().mean(),2)}")
-        st.write(f"Median Value: {round(df.select_dtypes(include=np.number).median().median(),2)}")
-        st.write(f"Max Value: {round(df.select_dtypes(include=np.number).max().max(),2)}")
+        # Column selector (generic)
+        selected_columns = st.multiselect(
+            "Select columns",
+            options=df.columns.tolist(),
+            default=df.columns.tolist()
+        )
 
-        st.markdown("### Data Preview")
-        st.dataframe(df.head())
+        st.markdown("### Preview")
+        st.dataframe(df[selected_columns].head(3600) if selected_columns else df.head())
+
+    else:
+        st.info("Upload a dataset to begin.")
 
 # ------------------ RIGHT PANEL ------------------
-with col2:
+with right:
+    st.subheader("📊 Analytics Panel")
 
-    # Insights box
-    st.markdown("### Insights")
-    st.info("📈 Sales increased by 22% last month")
-    st.warning("🔍 High correlation detected between Age and Income")
-    st.error("⚠️ Anomaly detected in sales data for March")
+    if df is not None:
 
-    if file:
-        # Charts Row 1
-        c1, c2 = st.columns(2)
+        # ---------- PLACEHOLDERS ----------
 
-        with c1:
-            st.markdown("### Sales Trend")
-            st.line_chart(df.select_dtypes(include=np.number))
+        if base is "Traffic":
+            analysis_type = st.multiselect(
+            "Select analysis type",
+            options=Traffic.analysis_options
 
-        with c2:
-            st.markdown("### Sales Chart")
-            st.area_chart(df.select_dtypes(include=np.number))
+            )
+        elif base is "Weather":
+            analysis_type = st.multiselect(
+            "Select analysis type",
+            options=Weather.analysis_options
+            )
+        elif base is "Sales":
+            analysis_type = st.multiselect(
+            "Select analysis type",
+            options=Sales.analysis_options
+            )
+        else:            analysis_type = st.multiselect(
+            "Select analysis type",
+            options=["Summary Statistics", "Correlation Matrix", "Distribution Plots", "Time Series Analysis", "Custom Analysis"]
+            )
 
-        # Charts Row 2
-        c3, c4 = st.columns(2)
+        st.markdown("### Insights")
+        st.info("Add your insights here")
 
-        with c3:
-            st.markdown("### Revenue Breakdown")
-            fig, ax = plt.subplots()
-            df.select_dtypes(include=np.number).iloc[0].plot.pie(autopct='%1.1f%%', ax=ax)
-            st.pyplot(fig)
+        st.markdown("### Charts")
+        chart_area = st.container()
+        if base is "Traffic":
+            Traffic(df,st,analysis_type)
+        if base is "Weather":
+            Weather(df,st,analysis_type)
+        if base is "Sales":
+            Sales(df,st,analysis_type)
+        st.markdown("### Advanced Analysis")
+        analysis_area = st.container()
 
-        with c4:
-            st.markdown("### Correlation Heatmap")
-            corr = df.select_dtypes(include=np.number).corr()
-            st.dataframe(corr)
+        st.markdown("### Results / Predictions")
+        result_area = st.container()
 
-        # Prediction Box
-        st.markdown("### Predictive Analysis")
-        st.success(f"Predicted Sales Next Month: {int(np.random.randint(200,400))}")
+    else:
+        st.info("Upload data to view analytics.")
