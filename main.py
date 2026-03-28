@@ -5,20 +5,14 @@ from bin.Analyse.Traffic import Traffic
 from bin.Analyse.Weather import Weather
 from bin.Analyse.Sales import Sales
 
-# ------------------ PAGE CONFIG ------------------
 st.set_page_config(page_title="Data Dashboard", layout="wide")
-
-# ------------------ TITLE ------------------
 st.title("📊 Smart Data Dashboard")
 
-# ------------------ FILE UPLOAD ------------------
-file = st.file_uploader(label="Upload your dataset (CSV or Excel)", type=["csv", "xlsx", "xls"])
+file = st.file_uploader("Upload your dataset (CSV or Excel)", type=["csv", "xlsx", "xls"])
 
 df = None
+dataset_index = 0
 
-print("File uploaded:", file)
-
-set = int(0)  # Default to Traffic if no file is uploaded
 if file is not None:
     try:
         if file.name.endswith(".csv"):
@@ -27,30 +21,30 @@ if file is not None:
             df = pd.read_excel(file)
 
         st.success("✅ File uploaded successfully!")
+
         if "traffic" in file.name.lower():
             st.info("Loaded Traffic dataset.")
-            set = int(0)
+            dataset_index = 0
         elif "weather" in file.name.lower():
             st.info("Loaded Weather dataset.")
-            set = int(1)
+            dataset_index = 1
         elif "sales" in file.name.lower():
             st.info("Loaded Sales dataset.")
-            set = int(2)
+            dataset_index = 2
         else:
-            set = int(3)
+            dataset_index = 3
+
     except Exception as e:
         st.error(f"Error loading file: {e}")
 
-
 base = st.selectbox(
     "Select a base for your analysis",
-    options=["Traffic", "Weather", "Sales","others"],
-    index = set
+    ["Traffic", "Weather", "Sales", "others"],
+    index=dataset_index
 )
-# ------------------ LAYOUT ------------------
+
 left, right = st.columns([1, 2])
 
-# ------------------ LEFT PANEL ------------------
 with left:
     st.subheader("📂 Data Panel")
 
@@ -58,7 +52,6 @@ with left:
         st.write("**Rows:**", df.shape[0])
         st.write("**Columns:**", df.shape[1])
 
-        # Column selector (generic)
         selected_columns = st.multiselect(
             "Select columns",
             options=df.columns.tolist(),
@@ -67,55 +60,55 @@ with left:
 
         st.markdown("### Preview")
         st.dataframe(df[selected_columns].head(3600) if selected_columns else df.head())
-
     else:
         st.info("Upload a dataset to begin.")
 
-# ------------------ RIGHT PANEL ------------------
 with right:
     st.subheader("📊 Analytics Panel")
 
     if df is not None:
 
-        # ---------- PLACEHOLDERS ----------
-
-        if base is "Traffic":
+        if base == "Traffic":
+            analysis_type = st.multiselect("Select analysis type", Traffic.analysis_options)
+        elif base == "Weather":
+            analysis_type = st.multiselect("Select analysis type", Weather.analysis_options)
+        elif base == "Sales":
+            analysis_type = st.multiselect("Select analysis type", Sales.analysis_options)
+        else:
             analysis_type = st.multiselect(
-            "Select analysis type",
-            options=Traffic.analysis_options
-
+                "Select analysis type",
+                ["Summary Statistics", "Correlation Matrix", "Distribution Plots", "Time Series Analysis", "Custom Analysis"]
             )
-        elif base is "Weather":
-            analysis_type = st.multiselect(
-            "Select analysis type",
-            options=Weather.analysis_options
-            )
-        elif base is "Sales":
-            analysis_type = st.multiselect(
-            "Select analysis type",
-            options=Sales.analysis_options
-            )
-        else:            analysis_type = st.multiselect(
-            "Select analysis type",
-            options=["Summary Statistics", "Correlation Matrix", "Distribution Plots", "Time Series Analysis", "Custom Analysis"]
-            )
-
-        st.markdown("### Insights")
-        st.info("Add your insights here")
 
         st.markdown("### Charts")
-        chart_area = st.container()
-        if base is "Traffic":
-            Traffic(df,st,analysis_type)
-        if base is "Weather":
-            Weather(df,st,analysis_type)
-        if base is "Sales":
-            Sales(df,st,analysis_type)
-        st.markdown("### Advanced Analysis")
-        analysis_area = st.container()
+        if base == "Traffic":
+            Traffic(df, st, analysis_type)
+        elif base == "Weather":
+            Weather(df, st, analysis_type)
+        elif base == "Sales":
+            Sales(df, st, analysis_type)
 
-        st.markdown("### Results / Predictions")
-        result_area = st.container()
+        st.markdown("### Insights")
+        if base == "Traffic":
+            st.info(Traffic.insights if Traffic.insights.strip() else "Select traffic analysis options to generate insights.")
+        elif base == "Weather":
+            st.info(Weather.insights if hasattr(Weather, "insights") and Weather.insights.strip() else "Select weather analysis options to generate insights.")
+        elif base == "Sales":
+            st.info(Sales.insights if hasattr(Sales, "insights") and Sales.insights.strip() else "Select sales analysis options to generate insights.")
+        else:
+            st.info("Insights are not available for this dataset type yet.")
 
+        st.markdown("### Advanced Analysis & Predictions")
+        st.warning("Advanced analysis and predictions will be available in future updates. Machine learning models will be added in future updates.")
+
+        st.markdown("### Results")
+        if base == "Traffic":
+            st.success(Traffic.results if Traffic.results.strip() else "No traffic results yet.")
+        elif base == "Weather":
+            st.success(Weather.results if Weather.results.strip() else "No weather results yet.")
+        elif base == "Sales":
+            st.success(Sales.results if Sales.results.strip() else "No sales results yet.")
+        else:
+            st.success("No specific analysis results available for this dataset.")
     else:
         st.info("Upload data to view analytics.")
