@@ -15,12 +15,17 @@ dataset_index = 0
 
 if file is not None:
     try:
+        
         if file.name.endswith(".csv"):
-            df = pd.read_csv(file)
-        else:
-            df = pd.read_excel(file)
+             df = pd.read_csv(file)
+             st.success("✅ File uploaded successfully!")
+        elif file.name.endswith((".xlsx", ".xls")):
+             df = pd.read_excel(file)
+             st.success("✅ File uploaded successfully!")
 
-        st.success("✅ File uploaded successfully!")
+        else:
+             st.error("❌ Unsupported file type!")
+
 
         if "traffic" in file.name.lower():
             st.info("Loaded Traffic dataset.")
