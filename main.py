@@ -13,7 +13,7 @@ st.title("📊 Smart Data Dashboard")
 
 
 def _infer_freq(index):
-    """Infer a safe pandas frequency for future date generation."""
+    
     idx = pd.to_datetime(pd.Index(index)).sort_values()
     if len(idx) >= 3:
         guessed = pd.infer_freq(idx)
@@ -27,7 +27,7 @@ def _infer_freq(index):
 
 
 def _make_forecast_features(length, seasonal_period=7):
-    """Create trend + seasonality features for a small NumPy ML regression model."""
+
     t = np.arange(length, dtype=float)
     scale = max(length - 1, 1)
     x = t / scale
